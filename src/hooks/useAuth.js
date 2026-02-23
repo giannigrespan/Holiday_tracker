@@ -23,11 +23,11 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signInWithGoogle = () =>
+  const signInWithGoogle = (redirectTo) =>
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: redirectTo ?? `${window.location.origin}/dashboard`,
         queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })
