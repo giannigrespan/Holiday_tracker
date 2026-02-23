@@ -15,7 +15,7 @@ export default function ExpenseForm({ tripId, members, currency, onSubmit, onCan
     amount:      '',
     currency,
     date:        today,
-    paid_by:     user?.id ?? '',
+    paid_by:     user?.id ?? members[0]?.user_id ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(null)
@@ -23,11 +23,12 @@ export default function ExpenseForm({ tripId, members, currency, onSubmit, onCan
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.amount || parseFloat(form.amount) <= 0) return setError('Inserisci un importo valido')
-    if (!form.paid_by) return setError('Seleziona chi ha pagato')
+    const paidBy = form.paid_by || (members.length === 1 ? members[0].user_id : '')
+    if (!paidBy) return setError('Seleziona chi ha pagato')
     setLoading(true)
     setError(null)
     try {
-      await onSubmit({ ...form, amount: parseFloat(form.amount) })
+      await onSubmit({ ...form, paid_by: paidBy, amount: parseFloat(form.amount) })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -120,13 +121,13 @@ export default function ExpenseForm({ tripId, members, currency, onSubmit, onCan
           </div>
 
           {/* Chi ha pagato */}
-          {members.length > 1 && (
+          {members.length > 0 && (
             <div>
               <label style={{ display: 'block', fontSize: 13, color: 'var(--color-text-2)', marginBottom: 8 }}>Chi ha pagato?</label>
               <div style={{ display: 'flex', gap: 10 }}>
                 {members.map(m => {
                   const profile = m.profiles
-                  const isSelected = form.paid_by === m.user_id
+                  const isSelected = (form.paid_by || members[0]?.user_id) === m.user_id
                   return (
                     <button
                       key={m.user_id} type="button"
@@ -137,7 +138,7 @@ export default function ExpenseForm({ tripId, members, currency, onSubmit, onCan
                         borderRadius: 12,
                         border: `1.5px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border)'}`,
                         background: isSelected ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-2)',
-                        cursor: 'pointer',
+                        cursor: members.length > 1 ? 'pointer' : 'default',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
