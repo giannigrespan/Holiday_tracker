@@ -203,17 +203,25 @@ BEGIN
     RAISE EXCEPTION 'Codice invito non valido o scaduto';
   END IF;
 
-  -- Controlla il numero di membri
+  -- Se l'utente è già membro, restituisci il trip_id direttamente
+  -- (evita l'errore "già 2 partecipanti" al secondo accesso al link)
+  IF EXISTS (
+    SELECT 1 FROM public.trip_members
+    WHERE trip_id = v_trip_id AND user_id = auth.uid()
+  ) THEN
+    RETURN v_trip_id;
+  END IF;
+
+  -- Controlla il numero di membri (massimo 2 per viaggio)
   SELECT COUNT(*) INTO v_count FROM public.trip_members WHERE trip_id = v_trip_id;
 
   IF v_count >= 2 THEN
     RAISE EXCEPTION 'Questo viaggio ha già 2 partecipanti';
   END IF;
 
-  -- Aggiunge il membro (ignora se già presente)
+  -- Aggiunge il nuovo membro
   INSERT INTO public.trip_members (trip_id, user_id, role)
-  VALUES (v_trip_id, auth.uid(), 'member')
-  ON CONFLICT (trip_id, user_id) DO NOTHING;
+  VALUES (v_trip_id, auth.uid(), 'member');
 
   RETURN v_trip_id;
 END;

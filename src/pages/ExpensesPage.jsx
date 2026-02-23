@@ -82,6 +82,7 @@ export default function ExpensesPage({ tripId }) {
                   expense={expense}
                   currency={trip?.currency}
                   isOwn={expense.paid_by === user?.id}
+                  members={members}
                   onDelete={() => setDeleteId(expense.id)}
                 />
               ))}
@@ -143,7 +144,7 @@ export default function ExpensesPage({ tripId }) {
   )
 }
 
-function ExpenseItem({ expense, currency, isOwn, onDelete }) {
+function ExpenseItem({ expense, currency, isOwn, members, onDelete }) {
   const [pressed, setPressed] = useState(false)
 
   return (
@@ -177,7 +178,12 @@ function ExpenseItem({ expense, currency, isOwn, onDelete }) {
           {expense.description || CATEGORY_LABELS[expense.category]}
         </p>
         <p style={{ fontSize: 12, color: 'var(--color-text-3)' }}>
-          Pagato da {expense.profiles?.full_name?.split(' ')[0] ?? '—'}
+          {(() => {
+            const name =
+              members?.find(m => m.user_id === expense.paid_by)?.profiles?.full_name
+              ?? expense.profiles?.full_name
+            return `Pagato da ${name?.split(' ')[0] ?? '—'}`
+          })()}
         </p>
       </div>
 
