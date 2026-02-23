@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../hooks/useAuth'
 import { useTrip } from '../hooks/useTrip'
 import { formatDate, formatCurrency } from '../lib/formatters'
@@ -8,9 +8,23 @@ import TripForm from '../components/trips/TripForm'
 
 export default function Dashboard() {
   const { user, signOut } = useAuth()
-  const { trips, loading, createTrip } = useTrip()
+  const { trips, loading, createTrip, deleteTrip } = useTrip()
   const [showForm, setShowForm] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
   const navigate = useNavigate()
+
+  const handleDelete = async (e, tripId) => {
+    e.stopPropagation()
+    if (!window.confirm('Eliminare questo viaggio? Verranno cancellate anche tutte le spese associate.')) return
+    try {
+      setDeletingId(tripId)
+      await deleteTrip(tripId)
+    } catch (err) {
+      alert('Errore durante l\'eliminazione: ' + err.message)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const handleCreate = async (data) => {
     const trip = await createTrip(data)
@@ -136,13 +150,34 @@ export default function Dashboard() {
                         </p>
                       )}
                     </div>
-                    <div style={{ textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                       <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-accent)' }}>
                         {formatCurrency(totalSpent, t.currency)}
                       </p>
-                      <p style={{ fontSize: 11, color: 'var(--color-text-3)', marginTop: 2 }}>
+                      <p style={{ fontSize: 11, color: 'var(--color-text-3)' }}>
                         {t.expenses?.length ?? 0} spese
                       </p>
+                      {t.created_by === user?.id && (
+                        <button
+                          onClick={(e) => handleDelete(e, t.id)}
+                          disabled={deletingId === t.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 30,
+                            height: 30,
+                            borderRadius: 8,
+                            background: 'rgba(239,68,68,0.1)',
+                            border: '1px solid rgba(239,68,68,0.2)',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            opacity: deletingId === t.id ? 0.5 : 1,
+                          }}
+                        >
+                          <TrashIcon style={{ width: 15, height: 15 }} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </button>
