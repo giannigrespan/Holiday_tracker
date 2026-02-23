@@ -53,7 +53,7 @@ export default function JoinTrip() {
           <p style={{ color: 'var(--color-text-2)', marginBottom: 32, lineHeight: 1.5 }}>
             Accedi con Google per unirti al viaggio con codice <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-accent-light)' }}>{inviteCode?.toUpperCase()}</strong>
           </p>
-          <GoogleLoginButton />
+          <GoogleLoginButton redirectTo={`${window.location.origin}/join/${inviteCode}`} />
         </div>
       ) : status === 'joining' ? (
         <>

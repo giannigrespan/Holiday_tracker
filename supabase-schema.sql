@@ -185,7 +185,41 @@ CREATE POLICY "expenses_update_paid_by" ON public.expenses
 CREATE POLICY "expenses_delete_paid_by" ON public.expenses
   FOR DELETE USING (auth.uid() = paid_by);
 
--- 9. REALTIME
+-- 9. FUNZIONE: join tramite invite code (bypassa RLS per il lookup del viaggio)
+CREATE OR REPLACE FUNCTION public.join_trip_by_invite_code(p_invite_code TEXT)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_trip_id UUID;
+  v_count   INT;
+BEGIN
+  -- Trova il viaggio (bypassa RLS)
+  SELECT id INTO v_trip_id FROM public.trips WHERE invite_code = p_invite_code;
+
+  IF v_trip_id IS NULL THEN
+    RAISE EXCEPTION 'Codice invito non valido o scaduto';
+  END IF;
+
+  -- Controlla il numero di membri
+  SELECT COUNT(*) INTO v_count FROM public.trip_members WHERE trip_id = v_trip_id;
+
+  IF v_count >= 2 THEN
+    RAISE EXCEPTION 'Questo viaggio ha già 2 partecipanti';
+  END IF;
+
+  -- Aggiunge il membro (ignora se già presente)
+  INSERT INTO public.trip_members (trip_id, user_id, role)
+  VALUES (v_trip_id, auth.uid(), 'member')
+  ON CONFLICT (trip_id, user_id) DO NOTHING;
+
+  RETURN v_trip_id;
+END;
+$$;
+
+-- 10. REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE public.expenses;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.trips;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.trip_members;

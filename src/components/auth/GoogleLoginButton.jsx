@@ -1,11 +1,11 @@
 import { useAuth } from '../../hooks/useAuth'
 
-export default function GoogleLoginButton({ size = 'lg' }) {
+export default function GoogleLoginButton({ size = 'lg', redirectTo }) {
   const { signInWithGoogle } = useAuth()
 
   return (
     <button
-      onClick={signInWithGoogle}
+      onClick={() => signInWithGoogle(redirectTo)}
       style={{
         display: 'flex',
         alignItems: 'center',
