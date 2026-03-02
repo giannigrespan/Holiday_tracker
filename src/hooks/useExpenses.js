@@ -14,7 +14,7 @@ export function useExpenses(tripId) {
     try {
       const { data, error } = await supabase
         .from('expenses')
-        .select('*, profiles:paid_by(id, full_name, avatar_url)')
+        .select('*, profiles!expenses_paid_by_fkey(id, full_name, avatar_url)')
         .eq('trip_id', tripId)
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
@@ -58,7 +58,7 @@ export function useExpenses(tripId) {
         currency,
         date,
       })
-      .select('*, profiles:paid_by(id, full_name, avatar_url)')
+      .select('*, profiles!expenses_paid_by_fkey(id, full_name, avatar_url)')
       .single()
 
     if (error) throw error
@@ -77,7 +77,7 @@ export function useExpenses(tripId) {
       .from('expenses')
       .update(updates)
       .eq('id', id)
-      .select('*, profiles:paid_by(id, full_name, avatar_url)')
+      .select('*, profiles!expenses_paid_by_fkey(id, full_name, avatar_url)')
       .single()
 
     if (error) throw error
