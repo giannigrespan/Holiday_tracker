@@ -99,7 +99,19 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
--- 8. ROW LEVEL SECURITY
+-- 8. FUNZIONE HELPER: restituisce i trip_id dell'utente corrente senza RLS
+-- SECURITY DEFINER bypassa RLS evitando la ricorsione infinita nelle policy
+CREATE OR REPLACE FUNCTION public.get_user_trip_ids()
+RETURNS SETOF UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT trip_id FROM public.trip_members WHERE user_id = auth.uid()
+$$;
+
+-- 9. ROW LEVEL SECURITY
 ALTER TABLE public.profiles     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trips        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trip_members ENABLE ROW LEVEL SECURITY;
@@ -121,9 +133,7 @@ CREATE POLICY "profiles_select_members" ON public.profiles
   FOR SELECT USING (
     id IN (
       SELECT tm.user_id FROM public.trip_members tm
-      WHERE tm.trip_id IN (
-        SELECT trip_id FROM public.trip_members WHERE user_id = auth.uid()
-      )
+      WHERE tm.trip_id IN (SELECT public.get_user_trip_ids())
     )
   );
 
@@ -135,7 +145,7 @@ DROP POLICY IF EXISTS "trips_delete_owner"    ON public.trips;
 
 CREATE POLICY "trips_select_members" ON public.trips
   FOR SELECT USING (
-    id IN (SELECT trip_id FROM public.trip_members WHERE user_id = auth.uid())
+    id IN (SELECT public.get_user_trip_ids())
   );
 
 CREATE POLICY "trips_insert_auth" ON public.trips
@@ -148,13 +158,28 @@ CREATE POLICY "trips_delete_owner" ON public.trips
   FOR DELETE USING (auth.uid() = created_by);
 
 -- TRIP_MEMBERS
+-- Nota: NON usare get_user_trip_ids() qui — quella funzione legge trip_members,
+-- che è proprio la tabella protetta da questa policy → ricorsione infinita.
+-- Usiamo user_id = auth.uid() per le proprie righe, e un approccio diverso
+-- per vedere i compagni di viaggio tramite una funzione separata.
 DROP POLICY IF EXISTS "trip_members_select" ON public.trip_members;
 DROP POLICY IF EXISTS "trip_members_insert" ON public.trip_members;
 DROP POLICY IF EXISTS "trip_members_delete" ON public.trip_members;
 
+-- Funzione helper dedicata per trip_members (evita doppia ricorsione)
+CREATE OR REPLACE FUNCTION public.get_user_trips_for_members()
+RETURNS SETOF UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT trip_id FROM public.trip_members WHERE user_id = auth.uid()
+$$;
+
 CREATE POLICY "trip_members_select" ON public.trip_members
   FOR SELECT USING (
-    trip_id IN (SELECT trip_id FROM public.trip_members WHERE user_id = auth.uid())
+    trip_id IN (SELECT public.get_user_trips_for_members())
   );
 
 CREATE POLICY "trip_members_insert" ON public.trip_members
@@ -171,12 +196,12 @@ DROP POLICY IF EXISTS "expenses_delete_paid_by"  ON public.expenses;
 
 CREATE POLICY "expenses_select_members" ON public.expenses
   FOR SELECT USING (
-    trip_id IN (SELECT trip_id FROM public.trip_members WHERE user_id = auth.uid())
+    trip_id IN (SELECT public.get_user_trip_ids())
   );
 
 CREATE POLICY "expenses_insert_members" ON public.expenses
   FOR INSERT WITH CHECK (
-    trip_id IN (SELECT trip_id FROM public.trip_members WHERE user_id = auth.uid())
+    trip_id IN (SELECT public.get_user_trip_ids())
   );
 
 CREATE POLICY "expenses_update_paid_by" ON public.expenses
@@ -185,7 +210,7 @@ CREATE POLICY "expenses_update_paid_by" ON public.expenses
 CREATE POLICY "expenses_delete_paid_by" ON public.expenses
   FOR DELETE USING (auth.uid() = paid_by);
 
--- 9. FUNZIONE: join tramite invite code (bypassa RLS per il lookup del viaggio)
+-- 10. FUNZIONE: join tramite invite code (bypassa RLS per il lookup del viaggio)
 CREATE OR REPLACE FUNCTION public.join_trip_by_invite_code(p_invite_code TEXT)
 RETURNS UUID
 LANGUAGE plpgsql
@@ -227,7 +252,7 @@ BEGIN
 END;
 $$;
 
--- 10. REALTIME
+-- 11. REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE public.expenses;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.trips;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.trip_members;
