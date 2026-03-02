@@ -47,7 +47,7 @@ function RecenterMap({ pos }) {
 
 export default function PlacesPage() {
   const { places, loading, error, userPos, category, locateAndSearch, search } = usePlaces()
-  const [selectedPlace, setSelectedPlace] = useState(null)
+  const [, setSelectedPlace] = useState(null)
 
   const categories = Object.entries(CATEGORY_MAP)
 

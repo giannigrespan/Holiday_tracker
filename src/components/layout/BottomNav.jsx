@@ -27,23 +27,23 @@ export default function BottomNav() {
           to={`/trip/${tripId}/${path}`}
           style={{ flex: 1 }}
         >
-          {({ isActive }) => (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 0',
-              color: isActive ? 'var(--color-accent-light)' : 'var(--color-text-3)',
-              transition: 'color 0.15s',
-            }}>
-              {isActive
-                ? <ActiveIcon style={{ width: 24, height: 24 }} />
-                : <Icon style={{ width: 24, height: 24 }} />
-              }
-              <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400 }}>{label}</span>
-            </div>
-          )}
+          {({ isActive }) => {
+            const Ico = isActive ? ActiveIcon : Icon
+            return (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 4,
+                padding: '4px 0',
+                color: isActive ? 'var(--color-accent-light)' : 'var(--color-text-3)',
+                transition: 'color 0.15s',
+              }}>
+                <Ico style={{ width: 24, height: 24 }} />
+                <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400 }}>{label}</span>
+              </div>
+            )
+          }}
         </NavLink>
       ))}
     </nav>

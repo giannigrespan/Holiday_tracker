@@ -5,7 +5,7 @@ import { CATEGORY_LABELS, CATEGORY_EMOJIS } from '../../lib/formatters'
 
 const CATEGORIES = ['flight', 'car_rental', 'accommodation', 'food', 'excursion', 'other']
 
-export default function ExpenseForm({ tripId, members, currency, onSubmit, onCancel }) {
+export default function ExpenseForm({ members, currency, onSubmit, onCancel }) {
   const { user } = useAuth()
   const today = new Date().toISOString().split('T')[0]
 
