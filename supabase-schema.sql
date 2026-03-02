@@ -252,7 +252,20 @@ BEGIN
 END;
 $$;
 
--- 11. REALTIME
+-- 11. GRANTS — permessi a livello di tabella per i ruoli Supabase
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.profiles     TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.trips        TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.trip_members TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.expenses     TO authenticated;
+
+-- Le funzioni SECURITY DEFINER devono essere eseguibili dagli utenti autenticati
+GRANT EXECUTE ON FUNCTION public.get_user_trip_ids()            TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_user_trips_for_members()   TO authenticated;
+GRANT EXECUTE ON FUNCTION public.join_trip_by_invite_code(TEXT) TO authenticated;
+
+-- 12. REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE public.expenses;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.trips;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.trip_members;
